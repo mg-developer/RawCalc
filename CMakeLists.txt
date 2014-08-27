@@ -1,0 +1,20 @@
+CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
+
+PROJECT(RawCalc)
+SET(PRJ_NAME RawCalc)
+
+FIND_PACKAGE(CUDA REQUIRED)
+
+IF(UNIX)
+    SET(PLATFORM_SPECIFIC_LIBRARIES ${PLATFORM_SPECIFIC_LIBRARIES} rt)
+    SET( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fstack-protector -fstack-protector-all -Wall -Wreturn-type -Wformat-security -Wpointer-arith -Wno-unused-parameter -Wstrict-null-sentinel -Woverloaded-virtual -Wsign-promo" )
+    SET( CMAKE_CXX_FLAGS_RELEASE "-O3 ${CMAKE_CXX_FLAGS_RELEASE}" )
+ENDIF()
+IF(WIN32)
+    SET(PLATFORM_SPECIFIC_LIBRARIES )
+    SET( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall" )
+    SET( CMAKE_CXX_FLAGS_RELEASE "-O3 ${CMAKE_CXX_FLAGS_RELEASE}" )
+ENDIF()
+
+
+ADD_SUBDIRECTORY(src)

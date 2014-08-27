@@ -1,0 +1,12 @@
+Debug
+build
+bin
+*.swp
+*.swo
+*.dll
+*.lib
+*.so
+*.a
+
+#generated files:
+RawCalc_Export.h
