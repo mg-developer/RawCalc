@@ -5,16 +5,29 @@ SET(PRJ_NAME RawCalc)
 
 FIND_PACKAGE(CUDA REQUIRED)
 
+#TODO:Find solution for platform-independent way to find helper cuda utilities from CUDA samples directory instead of 
+# using local copy of these files..
+SET(CUDA_HELPER_DIR ${CMAKE_SOURCE_DIR}/cuda)
+MESSAGE(STATUS ${CUDA_HELPER_DIR})
+
+
+SET(NVCC_GPU_ARCH
+    -gencode arch=compute_20,code=sm_20
+    -gencode arch=compute_30,code=sm_30
+    #   -gencode arch=compute_32,code=sm_32
+    #   -gencode arch=compute_35,code=sm_35
+    #   -gencode arch=compute_37,code=sm_37
+    #   -gencode arch=compute_50,code=sm_50
+    )
+
+
+SET(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};${NVCC_GPU_ARCH})
+
 IF(UNIX)
     SET(PLATFORM_SPECIFIC_LIBRARIES ${PLATFORM_SPECIFIC_LIBRARIES} rt)
-    SET( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fstack-protector -fstack-protector-all -Wall -Wreturn-type -Wformat-security -Wpointer-arith -Wno-unused-parameter -Wstrict-null-sentinel -Woverloaded-virtual -Wsign-promo" )
-    SET( CMAKE_CXX_FLAGS_RELEASE "-O3 ${CMAKE_CXX_FLAGS_RELEASE}" )
 ENDIF()
 IF(WIN32)
     SET(PLATFORM_SPECIFIC_LIBRARIES )
-    SET( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall" )
-    SET( CMAKE_CXX_FLAGS_RELEASE "-O3 ${CMAKE_CXX_FLAGS_RELEASE}" )
 ENDIF()
-
 
 ADD_SUBDIRECTORY(src)

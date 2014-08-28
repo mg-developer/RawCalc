@@ -13,9 +13,11 @@
 #include <helper_cuda.h>
 #include <helper_functions.h> // helper utility functions 
 
+#include "Logging.h"
+
 template<typename T>
 void printPTR(const ManagedPtr<T> &p, int size) {
-    for(int i=0; i != size; ++i)^M
+    for(int i=0; i != size; ++i)
         std::cout << p[i] << " ";
     std::cout << std::endl;
 }
@@ -78,7 +80,7 @@ std::pair<int, int> getMaxGflopsDeviceId() {
     //Best device
     cudaDeviceProp deviceProps;
     cudaGetDeviceProperties(&deviceProps, max_perf_device);
-    LOG() << "CUDA device [" << deviceProps.name "]" << std::endl;
+    LOG() << "CUDA device [" << deviceProps.name << "]" << std::endl;
 
     return std::make_pair(max_perf_device, max_compute_perf);
 }
@@ -103,7 +105,7 @@ __global__ void merge_kernel(int *static_tab, int *result)
     result[idx] = blockDim.x;
 }
 
-void calcOnGPU(const ProcessParams &p) {
+int calcOnGPU(const ProcessParams &p) {
 
     cudaDeviceProp cudaProps;
     cudaGetDeviceProperties(&cudaProps, 0);
@@ -119,7 +121,7 @@ void calcOnGPU(const ProcessParams &p) {
     printPTR(p.data,80);
 
     int *inc_data_dev;
-    cudaMalloc((void **)&record_data_dev, inc_mem);
+    cudaMalloc((void **)&inc_data_dev, p.data.bytes());
 
     cudaEvent_t start, stop;
     cudaEventCreate(&start);
@@ -149,7 +151,7 @@ void calcOnGPU(const ProcessParams &p) {
 
     //Stage I
 
-    cudaMemcpyAsync(inc_data_dev, p.data(), p.bytes(), cudaMemcpyHostToDevice);
+    cudaMemcpyAsync(inc_data_dev, p.data(), p.data.bytes(), cudaMemcpyHostToDevice);
   //  cudaMemcpyAsync(comb_data_dev, p.combinationData(), comb_mem, cudaMemcpyHostToDevice);
   //  cudaMemsetAsync(length_data_dev, 0x0, length_mem);
 
@@ -167,7 +169,7 @@ void calcOnGPU(const ProcessParams &p) {
     //TODO: Process    
     increment_kernel <<<task1_blocks, task1_threads>>>(inc_data_dev, 123);
 
-    cudaMemcpyAsync((void*)p.data(),  inc_data_dev, p.bytes(), cudaMemcpyDeviceToHost);
+    cudaMemcpyAsync((void*)p.data(),  inc_data_dev, p.data.bytes(), cudaMemcpyDeviceToHost);
 
     cudaFree(inc_data_dev);
 
@@ -185,8 +187,8 @@ void calcOnGPU(const ProcessParams &p) {
     // print the cpu and gpu times
     LOG() << "time spent executing by the GPU: " <<  gpu_time << "ms,  Counts: " << counter << std::endl;
 
-    cudaFree(int_data_dev);
-
+    cudaFree(inc_data_dev);
+    return 0;
 }
 
 

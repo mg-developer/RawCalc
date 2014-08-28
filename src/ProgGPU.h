@@ -10,7 +10,4 @@ struct ProcessParams {
 
 };
 
-void calcGPU(const ProcessParams &p);
-std::pair<int,int> getMaxGflopsDeviceId();
-
 #endif
