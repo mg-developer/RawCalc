@@ -16,78 +16,11 @@
 #include "Logging.h"
 
 
-static int best_GPU = 0;
-
 template<typename T>
 void printPTR(const ManagedPtr<T> &p, int size) {
     for(int i=0; i != size; ++i)
         std::cout << p[i] << " ";
     std::cout << std::endl;
-}
-
-
-// This function returns the best GPU based on performance
-static
-cudaDeviceProp getMaxGflopsDeviceId() {
-    CUdevice current_device = 0, max_perf_device = 0;
-    int device_count     = 0, sm_per_multiproc = 0;
-    int max_compute_perf = 0, best_SM_arch     = 0;
-    int major = 0, minor = 0, multiProcessorCount, clockRate;
-
-    cuInit(0);
-    checkCudaErrors(cuDeviceGetCount(&device_count));
-
-    // Find the best major SM Architecture GPU device
-    while (current_device < device_count) {
-        checkCudaErrors(cuDeviceComputeCapability(&major, &minor, current_device));
-
-        if (major > 0 && major < 9999) {
-            best_SM_arch = MAX(best_SM_arch, major);
-        }
-        current_device++;
-    }
-
-    // Find the best CUDA capable GPU device
-    current_device = 0;
-    while (current_device < device_count) {
-        checkCudaErrors(cuDeviceGetAttribute(&multiProcessorCount, CU_DEVICE_ATTRIBUTE_MULTIPROCESSOR_COUNT, current_device));
-        checkCudaErrors(cuDeviceGetAttribute(&clockRate,           CU_DEVICE_ATTRIBUTE_CLOCK_RATE,           current_device));
-        checkCudaErrors(cuDeviceComputeCapability(&major, &minor, current_device));
-
-        if (major == 9999 && minor == 9999) {
-            sm_per_multiproc = 1;
-        }
-        else {
-            sm_per_multiproc = _ConvertSMVer2Cores(major, minor);
-        }
-
-        int compute_perf  = multiProcessorCount * sm_per_multiproc * clockRate;
-
-        if (compute_perf  > max_compute_perf) {
-            // If we find GPU with SM major > 2, search only these
-            if (best_SM_arch > 2) {
-                // If our device==dest_SM_arch, choose this, or else pass
-                if (major == best_SM_arch) {
-                    max_compute_perf  = compute_perf;
-                    max_perf_device   = current_device;
-                }
-            }
-            else {
-                max_compute_perf  = compute_perf;
-                max_perf_device   = current_device;
-            }
-        }
-
-        ++current_device;
-    }
-
-    //Best device
-    cudaDeviceProp deviceProps;
-    cudaGetDeviceProperties(&deviceProps, max_perf_device);
-
-    best_GPU = max_perf_device;
-
-    return deviceProps;
 }
 
 
@@ -111,9 +44,12 @@ __global__ void merge_kernel(int *static_tab, int *result)
 }
 
 int findBestGPU() {
-    cudaDeviceProp deviceProps = getMaxGflopsDeviceId();
+
+    cudaSetDevice(0);
+    cudaDeviceProp deviceProps;
+    cudaGetDeviceProperties(&deviceProps, 0);
     LOG() << "CUDA device [" << deviceProps.name << "]" << std::endl;
-    LOG() << " Processors: " << deviceProps.multiProcessorCount << std::endl;
+    LOG() << " Processors: " << _ConvertSMVer2Cores(deviceProps.major, deviceProps.minor) * deviceProps.multiProcessorCount << std::endl;
     LOG() << " Clock rate: " << (deviceProps.clockRate / 1000) << " MHz" << std::endl;
     LOG() << "     Memory: " << (deviceProps.totalGlobalMem / 1024)/1024 << " Mb" << std::endl;
     return 0;
@@ -122,7 +58,7 @@ int findBestGPU() {
 int calcOnGPU(const ProcessParams &p) {
 
     cudaDeviceProp cudaProps;
-    cudaGetDeviceProperties(&cudaProps, best_GPU);
+    cudaGetDeviceProperties(&cudaProps, 0);
     const int constant_mem = cudaProps.totalConstMem;
     const int shrared_mem = cudaProps.sharedMemPerBlock;
     const int threads_max = cudaProps.maxThreadsPerBlock;
