@@ -20,7 +20,7 @@ RawCalc_EXPORT int ModuleSetup() {
     findBestGPU();
 
     ProcessParams p;
-    p.data = ManagedPtr<int>(100);
+    p.data.reset(100);
 
     for(int n=0; n<100; ++n)
         p.data[n] = n;

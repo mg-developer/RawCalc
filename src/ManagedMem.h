@@ -62,6 +62,15 @@ struct ManagedPtr {
         if(ptr)
             cudaFreeHost(ptr);
     }
+    void reset(std::size_t n_bytes) {
+        if(ptr) {
+            cudaFreeHost(ptr);
+            ptr = NULL;
+        }
+        sz = n_bytes;
+        cudaMallocHost((void **)&ptr, n_bytes);
+    }
+
     inline
     T *operator()() {
         return (T*)ptr;
@@ -95,7 +104,8 @@ struct ManagedPtr {
     ManagedIterator<T> end() const {
         return ManagedIterator<T>((T*)( reinterpret_cast<std::size_t>(ptr)+sz));
     }
-
+private:
+    void operator=(ManagedPtr<T> &p);
 private:
     std::size_t sz;
     void *ptr;
