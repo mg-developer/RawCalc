@@ -1,13 +1,23 @@
-#include "Logging.h"
+//////////////////////////////////////////////
+//Export as library
+#define RawCalc_EXPORTS
 #include "Exports.h"
+/////////////////////////////////////////////
+
+
+#include "Logging.h"
 #include "ProgGPU.h"
 
-extern "C" int calcOnGPU(const ProcessParams &p);
+int calcOnGPU(const ProcessParams &p);
+int findBestGPU();
 
+extern "C" {
 
 RawCalc_EXPORT int ModuleSetup() {
 
-    LOG() << "ModuleSetup";
+    LOG() << "ModuleSetup" << std::endl;
+
+    findBestGPU();
 
     ProcessParams p;
     p.data = ManagedPtr<int>(100);
@@ -17,8 +27,9 @@ RawCalc_EXPORT int ModuleSetup() {
 
     calcOnGPU(p);
 
+    LOG() << "Finished" << std::endl;
     return 0;
 }
 
-
+}
 

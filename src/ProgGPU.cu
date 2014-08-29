@@ -15,6 +15,9 @@
 
 #include "Logging.h"
 
+
+static int best_GPU = 0;
+
 template<typename T>
 void printPTR(const ManagedPtr<T> &p, int size) {
     for(int i=0; i != size; ++i)
@@ -24,7 +27,8 @@ void printPTR(const ManagedPtr<T> &p, int size) {
 
 
 // This function returns the best GPU based on performance
-std::pair<int, int> getMaxGflopsDeviceId() {
+static
+cudaDeviceProp getMaxGflopsDeviceId() {
     CUdevice current_device = 0, max_perf_device = 0;
     int device_count     = 0, sm_per_multiproc = 0;
     int max_compute_perf = 0, best_SM_arch     = 0;
@@ -80,9 +84,10 @@ std::pair<int, int> getMaxGflopsDeviceId() {
     //Best device
     cudaDeviceProp deviceProps;
     cudaGetDeviceProperties(&deviceProps, max_perf_device);
-    LOG() << "CUDA device [" << deviceProps.name << "]" << std::endl;
 
-    return std::make_pair(max_perf_device, max_compute_perf);
+    best_GPU = max_perf_device;
+
+    return deviceProps;
 }
 
 
@@ -105,10 +110,19 @@ __global__ void merge_kernel(int *static_tab, int *result)
     result[idx] = blockDim.x;
 }
 
+int findBestGPU() {
+    cudaDeviceProp deviceProps = getMaxGflopsDeviceId();
+    LOG() << "CUDA device [" << deviceProps.name << "]" << std::endl;
+    LOG() << " Processors: " << deviceProps.multiProcessorCount << std::endl;
+    LOG() << " Clock rate: " << (deviceProps.clockRate / 1000) << " MHz" << std::endl;
+    LOG() << "     Memory: " << (deviceProps.totalGlobalMem / 1024)/1024 << " Mb" << std::endl;
+    return 0;
+}
+
 int calcOnGPU(const ProcessParams &p) {
 
     cudaDeviceProp cudaProps;
-    cudaGetDeviceProperties(&cudaProps, 0);
+    cudaGetDeviceProperties(&cudaProps, best_GPU);
     const int constant_mem = cudaProps.totalConstMem;
     const int shrared_mem = cudaProps.sharedMemPerBlock;
     const int threads_max = cudaProps.maxThreadsPerBlock;
