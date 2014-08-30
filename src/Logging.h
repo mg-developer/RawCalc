@@ -1,4 +1,4 @@
 #include <iostream>
 
-#define LOG() std::cerr
+#define LOG() std::cout << std::dec
 

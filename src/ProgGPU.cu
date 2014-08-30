@@ -19,8 +19,8 @@
 template<typename T>
 void printPTR(const ManagedPtr<T> &p, int size) {
     for(int i=0; i != size; ++i)
-        std::cout << p[i] << " ";
-    std::cout << std::endl;
+        LOG() << p[i] << " ";
+    LOG() << std::endl;
 }
 
 
@@ -104,18 +104,21 @@ int calcOnGPU(const ProcessParams &p) {
     cudaMemcpyAsync(inc_data_dev, p.data(), p.data.bytes(), cudaMemcpyHostToDevice);
   //  cudaMemcpyAsync(comb_data_dev, p.combinationData(), comb_mem, cudaMemcpyHostToDevice);
   //  cudaMemsetAsync(length_data_dev, 0x0, length_mem);
-
+    int n = p.data.size();
     dim3 task1_threads;
     dim3 task1_blocks;
-    if(p.count < threads_max) {
-        task1_threads = dim3(p.count, 1);
+
+
+    LOG() << "Thr-max: " << threads_max << " el:" << n << std::endl;
+    if(n < threads_max) {
+        task1_threads = dim3(n, 1);
         task1_blocks  = 1;
     } else {
-        int n=p.count;
         task1_threads = dim3(threads_max, 1);
         task1_blocks  = dim3(n / task1_threads.x, 1);
     }
 
+    LOG() << "block:" <<  task1_blocks.x  << " thr:" << task1_threads.x << std::endl;
     //TODO: Process    
     increment_kernel <<<task1_blocks, task1_threads>>>(inc_data_dev, 123);
 

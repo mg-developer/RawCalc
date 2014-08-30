@@ -53,62 +53,61 @@ struct ManagedPtr {
     typedef T type;
     typedef ManagedIterator<T> iterator;
 
-    ManagedPtr(): sz(0), ptr(NULL) {
+    ManagedPtr(): msize(0), mptr(NULL) {
     }
-    ManagedPtr(std::size_t n_bytes): sz(n_bytes) {
-        cudaMallocHost((void **)&ptr, n_bytes);
+    ManagedPtr(std::size_t n_elements): msize(n_elements * sizeof(T)) {
+        cudaMallocHost((void **)&mptr, msize);
     }
     ~ManagedPtr() {
-        if(ptr)
-            cudaFreeHost(ptr);
+        if(mptr)
+            cudaFreeHost(mptr);
     }
-    void reset(std::size_t n_bytes) {
-        if(ptr) {
-            cudaFreeHost(ptr);
-            ptr = NULL;
+    void reset(std::size_t n_elements) {
+        if(mptr) {
+            cudaFreeHost(mptr);
+            mptr = NULL;
         }
-        sz = n_bytes;
-        cudaMallocHost((void **)&ptr, n_bytes);
+        msize = n_elements * sizeof(T);
+        cudaMallocHost((void **)&mptr, msize);
     }
 
     inline
     T *operator()() {
-        return (T*)ptr;
+        return (T*)mptr;
     }
     inline
     const T *operator()() const {
-        return (T*)ptr;
+        return (T*)mptr;
     }
 
     inline
     T &operator[](std::size_t idx) {
-        return ((T*)ptr)[idx];
+        return ((T*)mptr)[idx];
     }
     inline
     const T &operator[](std::size_t idx) const {
-        return ((T*)ptr)[idx];
+        return ((T*)mptr)[idx];
     }
-
     inline
     std::size_t size() const {
-        return sz/sizeof(T);
+        return msize/sizeof(T);
     }
     inline
     std::size_t bytes() const {
-        return sz;
+        return msize;
     }
 
     ManagedIterator<T> begin() const {
-        return ManagedIterator<T>((T*)ptr);
+        return ManagedIterator<T>((T*)mptr);
     }
     ManagedIterator<T> end() const {
-        return ManagedIterator<T>((T*)( reinterpret_cast<std::size_t>(ptr)+sz));
+        return ManagedIterator<T>((T*)( reinterpret_cast<std::size_t>(mptr)+msize));
     }
 private:
     void operator=(ManagedPtr<T> &p);
 private:
-    std::size_t sz;
-    void *ptr;
+    std::size_t msize;
+    void *mptr;
 };
 
 

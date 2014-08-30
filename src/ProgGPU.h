@@ -5,7 +5,7 @@
 #include "ManagedMem.h"
 
 struct ProcessParams {
-    std::size_t count;
+//    std::size_t count;
     ManagedPtr<int> data;
 
 };
