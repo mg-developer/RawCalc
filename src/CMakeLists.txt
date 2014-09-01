@@ -7,18 +7,32 @@ INCLUDE_DIRECTORIES(
     ${CMAKE_CURRENT_BINARY_DIR}
 )
 
+SET(HEADERS
+    Exports.h
+    Logging.h
+    ManagedMem.h
+    ProgGPU.h
+)
+
 SET(SOURCES
     RawCalc.cpp
 )
 
 SET(CUDA_SOURCES
     ProgGPU.cu
+    BitConverters.cu
 )
 
 SET(CUDA_VERBOSE_BUILD ON CACHE BOOL "nvcc verbose" FORCE)
+# Set CUDA_ATTACH_VS_BUILD_RULE_TO_CUDA_FILE when you want to add the same .cu
+# file to multiple targets.
 SET(CUDA_ATTACH_VS_BUILD_RULE_TO_CUDA_FILE OFF)
 SET(BUILD_SHARED_LIBS ON)
 SET(CUDA_SEPARATE_COMPILATION ON)
+
+SOURCE_GROUP("include" FILES
+    ${HEADERS}
+)
 
 ADD_DEFINITIONS(-DBUILD_LIBRARY)
 CUDA_ADD_LIBRARY(${PRJ_NAME} SHARED
