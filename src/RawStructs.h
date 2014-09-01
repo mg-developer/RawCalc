@@ -72,7 +72,7 @@ struct metadata
 
     int isMLV;//bool
 
-    unsigned char DNGHeader[8192];
+    unsigned char DNGHeader[7728];
     unsigned char version[64];
     unsigned char versionString[128];
     unsigned char propertiesString[256];
@@ -117,11 +117,12 @@ struct mlvBlock
     int MLVFrameNo;
 };
 
+#pragma pack(1)
 struct rawBlock
 {
     int fileNo;
     long fileOffset;
-    bool splitted;
+    int splitted;//bool
 };
 
 

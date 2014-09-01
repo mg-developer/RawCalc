@@ -45,9 +45,10 @@ RawCalc_EXPORT int AssignFileToProcess(char *input) {
 }
 
 
-RawCalc_EXPORT int ProcessDataAndSave(char *output, unsigned char *dngheader, int sizedng) {
-    LOG() << "Output file:" << output << std::endl;
-    for(int i=0; i<  sizedng; ++i) {
+RawCalc_EXPORT int ProcessDataAndSave(char *output, mlvBlock blk, unsigned char *dngheader, int sizedng) {
+    LOG() << "Output file:" << output << "  Frame:" << blk.MLVFrameNo << std::endl;
+
+    for(int i=0; i<  20; ++i) {
         LOG() << std::hex << dngheader[i] << " ";
     }
     LOG() << std::endl;
