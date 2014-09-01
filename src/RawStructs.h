@@ -32,21 +32,21 @@ struct metadata
     int frames;
     int bitsperSample;
     int bitsperSampleChanged;
-    bool isLog;
+    int isLog; //bool
     unsigned char colorMatrix[72];
     int lostFrames;
     int fpsNom;
     int fpsDen;
-    bool dropFrame;
-    unsigned char fpsString[8];
+    int dropFrame;//bool
+    unsigned char fpsString[16]; //temp - string
     int stripByteCount;
     int stripByteCountReal;
-    unsigned char modell[8];
-    unsigned char camId[8];
+    unsigned char modell[64]; //temp - string
+    unsigned char camId[32]; //temp - string
     int apiVersion;
     int splitCount;
-    bool photoRAW;
-    bool photoRAWe;
+    int photoRAW;//bool
+    int  photoRAWe; //bool
     int RGGBValues[4];
     int RGBfraction[6];
     double jpgConvertR;
@@ -62,7 +62,7 @@ struct metadata
     int blackLevelNew;
     int whiteLevelOld;
     int whiteLevelNew;
-    bool maximize;
+    int maximize;//bool
     //  double gamma { get; set; }
     double maximizer;
 
@@ -70,7 +70,7 @@ struct metadata
     int previewFrame;
     unsigned char errorString[128];
 
-    bool isMLV;
+    int isMLV;//bool
 
     unsigned char DNGHeader[128];
     unsigned char version[64];
@@ -105,9 +105,10 @@ struct lensdata
     std::string shutter;
 };
 
+#pragma pack(1)
 struct mlvBlock
 {
-    std::string blockTag;
+    unsigned char blockTag[4];
     long fileOffset;
     int fileNo;
     int blockLength;
