@@ -19,7 +19,7 @@ managed_data_block from12to16(datatype);
 
 extern "C" {
 
-RawCalc_EXPORT int ModuleSetup(metadata data)
+RawCalc_EXPORT int ModuleSetup(metadata data) {
 
     LOG() << "ModuleSetup" << std::endl;
 
