@@ -28,10 +28,18 @@ static metadata metaData;
 static int ReadData(const char *file, const mlvBlock &block);
 static int WriteData(const char *file, MDB &processed, unsigned char *dng, int sizedng);
 
+template<typename T>
+int write_raw(const char *name, const T& in, std::size_t size = sizeof(T)) {
+    std::ofstream f(name, std::ofstream::binary);
+    f.write((const char*)&in, size);
+    f.close();
+}
+
+
 extern "C" {
 
 RawCalc_EXPORT int ModuleSetup(metadata data) {
-
+    write_raw("metadata.out", data);
     LOG() << "ModuleSetup" << std::endl;
 
     memcpy((void*)&metaData, (void*)&data, sizeof(metadata));
@@ -68,7 +76,8 @@ RawCalc_EXPORT int AssignFileToProcess(char *input) {
 RawCalc_EXPORT int ProcessDataAndSave(char *output, mlvBlock block, unsigned char *dngheader, int sizedng) {
 //    LOG() << "Output file:" << output << "  Frame:" << blk.MLVFrameNo << " Len:" blk.blockLength << std::endl;
 
-
+    write_raw("mlvblock.out", block);
+    write_raw("dng.out", *dngheader, sizedng);
 
     ReadData(inputFile.c_str(), block);
 
