@@ -19,12 +19,11 @@ managed_data_block from12to16(datatype);
 
 extern "C" {
 
-RawCalc_EXPORT int ModuleSetup() {
+RawCalc_EXPORT int ModuleSetup(metadata data)
 
     LOG() << "ModuleSetup" << std::endl;
 
-    findBestGPU();
-
+/*    findBestGPU();
     ProcessParams p;
     p.data.reset(100);
 
@@ -32,14 +31,16 @@ RawCalc_EXPORT int ModuleSetup() {
         p.data[n] = n;
 
     calcOnGPU(p);
+*/
+    LOG() << "Res:" << data.xResolution << "x" << data.yResolution << std::endl;
+    LOG() << "Metadata size:" << sizeof(metadata) << std::endl;
 
     LOG() << "Finished" << std::endl;
     return 0;
 }
 
-RawCalc_EXPORT int AssignFileToProcess(char *input, metadata data) {
-    LOG() << "Input file:" << input <<  "  Res:" << data.xResolution << "x" << data.yResolution << std::endl;
-    LOG() << "Metadata size:" << sizeof(metadata) << std::endl;
+RawCalc_EXPORT int AssignFileToProcess(char *input) {
+    LOG() << "Input file:" << input << std::endl;
     return 0;
 }
 

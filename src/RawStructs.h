@@ -72,7 +72,7 @@ struct metadata
 
     int isMLV;//bool
 
-    unsigned char DNGHeader[128];
+    unsigned char DNGHeader[8192];
     unsigned char version[64];
     unsigned char versionString[128];
     unsigned char propertiesString[256];
