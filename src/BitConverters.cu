@@ -2,22 +2,22 @@
 #include "ManagedMem.h"
 #include <memory>
 
-managed_data_block to16(datatype rData)
+MDB to16(const metadata &metaData, MDB &in)
 {
     // preparing variables
-    int resx = rData.metaData.xResolution;
-    int resy = rData.metaData.yResolution;
-    int bl = rData.metaData.blackLevelOld;
-    bool maximize = rData.metaData.maximize;
-    double maximizer = rData.metaData.maximizer;
+    int resx = metaData.xResolution;
+    int resy = metaData.yResolution;
+    int bl = metaData.blackLevelOld;
+    bool maximize = metaData.maximize;
+    double maximizer = metaData.maximizer;
 
-    unsigned char* source = rData.rawData;
+    unsigned char* source = in();
     // ------------- and go ----
     unsigned int chunks = resx * resy * 14 / 8;
-    managed_data_block Dest(std::size_t(chunks / 14 * 16));
+    MDB Dest(std::size_t(chunks / 14 * 16));
    // unique_data_block Dest(new unsigned char[chunks / 14 * 16]);
-   
-    Dest[3] =3;
+
+
     unsigned int tt = 0;
     int senselA, senselB, senselC, senselD, senselE, senselF, senselG, senselH;
     for (unsigned int t = 0; t < chunks; t += 14)
@@ -121,16 +121,16 @@ managed_data_block to16(datatype rData)
 // 16bit - 8192-60.000 - maximized 0-65535
 // 12bit - 512-3750 = ~3.200 - maximized 0-4095 (
 
-managed_data_block from16to12(datatype rData)
+MDB from16to12(const metadata &metaData, MDB &in)
 {
     // preparing variables
-    int resx = rData.metaData.xResolution;
-    int resy = rData.metaData.yResolution;
-    unsigned char* source = rData.rawData;
+    int resx = metaData.xResolution;
+    int resy = metaData.yResolution;
+    unsigned char* source = in();
     // ------------- and go ----
 
     unsigned int chunks = resx * resy * 16 / 8;
-    managed_data_block Dest(std::size_t(chunks / 16 * 12 + 72));
+    MDB Dest(std::size_t(chunks / 16 * 12 + 72));
     unsigned int tt = 0;
     int senselA, senselB, senselC, senselD, senselE, senselF, senselG, senselH;
     int senselI, senselJ, senselK, senselL, senselM, senselN, senselO, senselP;
@@ -218,19 +218,19 @@ managed_data_block from16to12(datatype rData)
     return std::move(Dest);
 }
 
-managed_data_block to12(datatype rData)
+MDB to12(const metadata &metaData, MDB &in)
 {
     // preparing variables
-    int resx = rData.metaData.xResolution;
-    int resy = rData.metaData.yResolution;
-    int bl = rData.metaData.blackLevelOld;
-    bool maximize = rData.metaData.maximize;
-    double maximizer = rData.metaData.maximizer;
-    unsigned char* source = rData.rawData;
+    int resx = metaData.xResolution;
+    int resy = metaData.yResolution;
+    int bl = metaData.blackLevelOld;
+    bool maximize = metaData.maximize;
+    double maximizer = metaData.maximizer;
+    unsigned char* source = in();
     // ------------- and go ----
 
     unsigned int chunks = resx * resy * 14 / 8;
-    managed_data_block Dest(std::size_t(chunks / 14 * 12 + 42));
+    MDB Dest(std::size_t(chunks / 14 * 12 + 42));
     unsigned int tt = 0;
     int senselA, senselB, senselC, senselD, senselE, senselF, senselG, senselH;
     int senselI, senselJ, senselK, senselL, senselM, senselN, senselO, senselP;

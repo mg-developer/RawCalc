@@ -109,10 +109,10 @@ struct lensdata
 struct mlvBlock
 {
     unsigned char blockTag[4];
-    long fileOffset;
+    long long fileOffset;
     int fileNo;
     int blockLength;
-    long timestamp;
+    long long timestamp;
     int EDMACoffset;
     int MLVFrameNo;
 };
@@ -192,6 +192,6 @@ struct rawtype
 
 //typedef std::unique_ptr<unsigned char[]> unique_data_block;
 //typedef ArrayPtr<unsigned char> unique_data_block;
-typedef ManagedPtr<unsigned char> managed_data_block;
+typedef ManagedPtr<unsigned char> MDB;
 
 #endif
