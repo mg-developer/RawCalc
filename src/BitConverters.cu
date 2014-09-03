@@ -1,21 +1,20 @@
+#include "Logging.h"
 #include "RawStructs.h"
 #include "ManagedMem.h"
 #include <memory>
 
-MDB to16(const metadata &metaData, MDB &in)
+std::unique_ptr<MDB> to16(const metadata &metaData,const MDB &in)
 {
-    // preparing variables
     int resx = metaData.xResolution;
     int resy = metaData.yResolution;
     int bl = metaData.blackLevelOld;
     bool maximize = metaData.maximize;
     double maximizer = metaData.maximizer;
+    const unsigned char* source = in();
 
-    unsigned char* source = in();
-    // ------------- and go ----
     unsigned int chunks = resx * resy * 14 / 8;
-    MDB Dest(std::size_t(chunks / 14 * 16));
-   // unique_data_block Dest(new unsigned char[chunks / 14 * 16]);
+    std::unique_ptr<MDB> destination(new MDB(std::size_t(chunks / 14 * 16)));
+    MDB &Dest = *destination.get();
 
 
     unsigned int tt = 0;
@@ -113,7 +112,8 @@ MDB to16(const metadata &metaData, MDB &in)
         Dest[tt++] = (unsigned char)(senselH >> 8);
 
     }
-    return std::move(Dest);
+
+    return destination;
 }
 
 // 5DIII valuerange
@@ -121,16 +121,18 @@ MDB to16(const metadata &metaData, MDB &in)
 // 16bit - 8192-60.000 - maximized 0-65535
 // 12bit - 512-3750 = ~3.200 - maximized 0-4095 (
 
-MDB from16to12(const metadata &metaData, MDB &in)
+std::unique_ptr<MDB> from16to12(const metadata &metaData, const MDB &in)
 {
     // preparing variables
     int resx = metaData.xResolution;
     int resy = metaData.yResolution;
-    unsigned char* source = in();
+    const unsigned char* source = in();
     // ------------- and go ----
 
     unsigned int chunks = resx * resy * 16 / 8;
-    MDB Dest(std::size_t(chunks / 16 * 12 + 72));
+    std::unique_ptr<MDB> destination (new MDB(std::size_t(chunks / 16 * 12 + 72)));
+    MDB &Dest = *destination.get();
+
     unsigned int tt = 0;
     int senselA, senselB, senselC, senselD, senselE, senselF, senselG, senselH;
     int senselI, senselJ, senselK, senselL, senselM, senselN, senselO, senselP;
@@ -215,10 +217,10 @@ MDB from16to12(const metadata &metaData, MDB &in)
         Dest[tt++] = (unsigned char)(senselX & 0xff);
         //36
     }
-    return std::move(Dest);
+    return destination;
 }
 
-MDB to12(const metadata &metaData, MDB &in)
+std::unique_ptr<MDB> to12(const metadata &metaData, const MDB &in)
 {
     // preparing variables
     int resx = metaData.xResolution;
@@ -226,11 +228,14 @@ MDB to12(const metadata &metaData, MDB &in)
     int bl = metaData.blackLevelOld;
     bool maximize = metaData.maximize;
     double maximizer = metaData.maximizer;
-    unsigned char* source = in();
+    const unsigned char* source = in();
     // ------------- and go ----
 
     unsigned int chunks = resx * resy * 14 / 8;
-    MDB Dest(std::size_t(chunks / 14 * 12 + 42));
+    std::unique_ptr<MDB> destination(new MDB(std::size_t(chunks / 14 * 12 + 42)));
+    MDB &Dest = *destination.get();
+
+
     unsigned int tt = 0;
     int senselA, senselB, senselC, senselD, senselE, senselF, senselG, senselH;
     int senselI, senselJ, senselK, senselL, senselM, senselN, senselO, senselP;
@@ -450,6 +455,6 @@ MDB to12(const metadata &metaData, MDB &in)
         Dest[tt++] = (unsigned char)(senselX & 0xff);
 
     }
-    return std::move(Dest);
+    return destination;
 }
 

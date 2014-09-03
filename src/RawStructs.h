@@ -3,6 +3,7 @@
 
 #include <string>
 #include <list>
+#include <cstdint>
 #include "ManagedMem.h"
 
 //#include "ArrayPtr.hpp"
@@ -108,11 +109,11 @@ struct lensdata
 #pragma pack(1)
 struct mlvBlock
 {
-    unsigned char blockTag[4];
-    long long fileOffset;
+    unsigned char blockTag[8];
+    std::int64_t fileOffset;
     int fileNo;
     int blockLength;
-    long long timestamp;
+    std::int64_t timestamp;
     int EDMACoffset;
     int MLVFrameNo;
 };

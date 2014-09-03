@@ -15,9 +15,9 @@
 int calcOnGPU(const ProcessParams &p);
 int findBestGPU();
 
-MDB to16(const metadata &, MDB &);
-MDB to12(const metadata &, MDB &);
-MDB from12to16(const metadata &, MDB &);
+std::unique_ptr<MDB> to16(const metadata &, const MDB &);
+std::unique_ptr<MDB> to12(const metadata &, const MDB &);
+std::unique_ptr<MDB> from12to16(const metadata &, const MDB &);
 
 
 //Global Data
@@ -33,13 +33,14 @@ int write_raw(const char *name, const T& in, std::size_t size = sizeof(T)) {
     std::ofstream f(name, std::ofstream::binary);
     f.write((const char*)&in, size);
     f.close();
+    return 0;
 }
 
 
 extern "C" {
 
 RawCalc_EXPORT int ModuleSetup(metadata data) {
-    write_raw("metadata.out", data);
+//    write_raw("metadata.out", data);
     LOG() << "ModuleSetup" << std::endl;
 
     memcpy((void*)&metaData, (void*)&data, sizeof(metadata));
@@ -74,14 +75,17 @@ RawCalc_EXPORT int AssignFileToProcess(char *input) {
 
 
 RawCalc_EXPORT int ProcessDataAndSave(char *output, mlvBlock block, unsigned char *dngheader, int sizedng) {
-//    LOG() << "Output file:" << output << "  Frame:" << blk.MLVFrameNo << " Len:" blk.blockLength << std::endl;
+    LOG() << "Output file:" << output << "  Frame:" << block.MLVFrameNo << std::endl;
 
-    write_raw("mlvblock.out", block);
-    write_raw("dng.out", *dngheader, sizedng);
+//    write_raw("mlvblock.out", block);
+//    write_raw("dng.out", *dngheader, sizedng);
 
     ReadData(inputFile.c_str(), block);
 
-    MDB processed = to16(metaData, inputData);
+    std::unique_ptr<MDB> processed = to16(metaData, inputData);
+
+    unsigned char* d = (*processed.get())();
+
 
     //TODO:
     //vertical Banding
@@ -89,13 +93,8 @@ RawCalc_EXPORT int ProcessDataAndSave(char *output, mlvBlock block, unsigned cha
     //pinkHighlight
     //downsample to 12
 
-    WriteData(output, processed, dngheader, sizedng);
+    WriteData(output, *processed.get(), dngheader, sizedng);
 
-
-    /*for(int i=0; i<  20; ++i) {
-        LOG() << std::hex << dngheader[i] << " ";
-    }
-    LOG() << std::endl;*/
     return 0;
 }
 
