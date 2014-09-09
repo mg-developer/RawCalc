@@ -3,44 +3,335 @@
 #include "ManagedMem.h"
 #include <memory>
 
-std::unique_ptr<MDB> to16(const metadata &metaData,const MDB &in)
-{
-    int resx = metaData.xResolution;
-    int resy = metaData.yResolution;
-    int bl = metaData.blackLevelOld;
-    bool maximize = metaData.maximize;
-    double maximizer = metaData.maximizer;
+#include <helper_cuda.h>
+
+static MDB destinationData[6];
+
+__global__ void proc_kernel_conv_14_max(int last_chunk, int bl, float maximize, unsigned char *in, unsigned char *out) {
+
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    int t = idx * 14;
+    int tt = idx * 16;
+    unsigned int senselA, senselB, senselC, senselD, senselE, senselF, senselG, senselH;
+    unsigned int maximizer = maximize;
+
+    if(idx < last_chunk) {
+
+        unsigned int in_0 = (unsigned int)in[t];
+        unsigned int in_1 = (unsigned int)in[t+1];
+        unsigned int in_2 = (unsigned int)in[t+2];
+        unsigned int in_3 = (unsigned int)in[t+3];
+        unsigned int in_4 = (unsigned int)in[t+4];
+        unsigned int in_5 = (unsigned int)in[t+5];
+        unsigned int in_6 = (unsigned int)in[t+6];
+        unsigned int in_7 = (unsigned int)in[t+7];
+        unsigned int in_8 = (unsigned int)in[t+8];
+        unsigned int in_9 = (unsigned int)in[t+9];
+        unsigned int in_10 = (unsigned int)in[t+10];
+        unsigned int in_11 = (unsigned int)in[t+11];
+        unsigned int in_12 = (unsigned int)in[t+12];
+        unsigned int in_13 = (unsigned int)in[t+13];
+        unsigned int in_14 = (unsigned int)in[t+14];
+        unsigned int in_15 = (unsigned int)in[t+15];
+
+
+        senselA = ((in_0 >> 2)              | (in_1 << 6));
+        senselB = ((in_0 & 0x3) << 12)      | (in_3 << 4)       | (in_2 >> 4);
+        senselC = ((in_2 & 0x0f) << 10)     | (in_5 << 2)       | (in_4 >> 6);
+        senselD = ((in_4 & 0x3f) << 8)      | (in_7);
+        senselE = ((in_9 >> 2)              | (in_6 << 6));
+        senselF = ((in_9 & 0x3) << 12)      | (in_8 << 4)       | (in_11 >> 4);
+        senselG = ((in_11 & 0x0f) << 10)    | (in_10 << 2)      | (in_13 >> 6);
+        senselH = ((in_13 & 0x3f) << 8)     | (in_12);
+
+// debias sensel
+        senselA -= bl;
+        senselB -= bl;
+        senselC -= bl;
+        senselD -= bl;
+        senselE -= bl;
+        senselF -= bl;
+        senselG -= bl;
+        senselH -= bl;
+
+
+// maximize to 16bit
+        senselA = (senselA * maximizer);
+        senselB = (senselB * maximizer);
+        senselC = (senselC * maximizer);
+        senselD = (senselD * maximizer);
+        senselE = (senselE * maximizer);
+        senselF = (senselF * maximizer);
+        senselG = (senselG * maximizer);
+        senselH = (senselH * maximizer);
+
+// do max on overflow
+        if (senselA > 65535) senselA = 65535;
+        if (senselB > 65535) senselB = 65535;
+        if (senselC > 65535) senselC = 65535;
+        if (senselD > 65535) senselD = 65535;
+        if (senselE > 65535) senselE = 65535;
+        if (senselF > 65535) senselF = 65535;
+        if (senselG > 65535) senselG = 65535;
+        if (senselH > 65535) senselH = 65535;
+
+// -- react on underflow
+        if (senselA < 0) senselA = 0;
+        if (senselB < 0) senselB = 0;
+        if (senselC < 0) senselC = 0;
+        if (senselD < 0) senselD = 0;
+        if (senselE < 0) senselE = 0;
+        if (senselF < 0) senselF = 0;
+        if (senselG < 0) senselG = 0;
+        if (senselH < 0) senselH = 0;
+
+        out[tt] = (unsigned char)(senselA & 0xff);
+        out[tt+1] = (unsigned char)(senselA >> 8);
+
+        out[tt+2] = (unsigned char)(senselB & 0xff);
+        out[tt+3] = (unsigned char)(senselB >> 8);
+
+        out[tt+4] = (unsigned char)(senselC & 0xff);
+        out[tt+5] = (unsigned char)(senselC >> 8);
+
+        out[tt+6] = (unsigned char)(senselD & 0xff);
+        out[tt+7] = (unsigned char)(senselD >> 8);
+
+        out[tt+8] = (unsigned char)(senselE & 0xff);
+        out[tt+9] = (unsigned char)(senselE >> 8);
+
+        out[tt+10] = (unsigned char)(senselF & 0xff);
+        out[tt+11] = (unsigned char)(senselF >> 8);
+
+        out[tt+12] = (unsigned char)(senselG & 0xff);
+        out[tt+13] = (unsigned char)(senselG >> 8);
+
+        out[tt+14] = (unsigned char)(senselH & 0xff);
+        out[tt+15] = (unsigned char)(senselH >> 8);
+
+    }
+
+}
+
+
+__global__ void proc_kernel_conv_14(int last_chunk, unsigned char *in, unsigned char *out) {
+
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    int t = idx * 14;
+    int tt = idx * 16;
+    int senselA, senselB, senselC, senselD, senselE, senselF, senselG, senselH;
+
+    if(idx < last_chunk) {
+
+        unsigned int in_0 = (unsigned int)in[t];
+        unsigned int in_1 = (unsigned int)in[t+1];
+        unsigned int in_2 = (unsigned int)in[t+2];
+        unsigned int in_3 = (unsigned int)in[t+3];
+        unsigned int in_4 = (unsigned int)in[t+4];
+        unsigned int in_5 = (unsigned int)in[t+5];
+        unsigned int in_6 = (unsigned int)in[t+6];
+        unsigned int in_7 = (unsigned int)in[t+7];
+        unsigned int in_8 = (unsigned int)in[t+8];
+        unsigned int in_9 = (unsigned int)in[t+9];
+        unsigned int in_10 = (unsigned int)in[t+10];
+        unsigned int in_11 = (unsigned int)in[t+11];
+        unsigned int in_12 = (unsigned int)in[t+12];
+        unsigned int in_13 = (unsigned int)in[t+13];
+        unsigned int in_14 = (unsigned int)in[t+14];
+        unsigned int in_15 = (unsigned int)in[t+15];
+
+
+        senselA = ((in_0 >> 2)              | (in_1 << 6));
+        senselB = ((in_0 & 0x3) << 12)      | (in_3 << 4)       | (in_2 >> 4);
+        senselC = ((in_2 & 0x0f) << 10)     | (in_5 << 2)       | (in_4 >> 6);
+        senselD = ((in_4 & 0x3f) << 8)      | (in_7);
+        senselE = ((in_9 >> 2)              | (in_6 << 6));
+        senselF = ((in_9 & 0x3) << 12)      | (in_8 << 4)       | (in_11 >> 4);
+        senselG = ((in_11 & 0x0f) << 10)    | (in_10 << 2)      | (in_13 >> 6);
+        senselH = ((in_13 & 0x3f) << 8)     | (in_12);
+
+        out[tt] = (unsigned char)(senselA & 0xff);
+        out[tt+1] = (unsigned char)(senselA >> 8);
+
+        out[tt+2] = (unsigned char)(senselB & 0xff);
+        out[tt+3] = (unsigned char)(senselB >> 8);
+
+        out[tt+4] = (unsigned char)(senselC & 0xff);
+        out[tt+5] = (unsigned char)(senselC >> 8);
+
+        out[tt+6] = (unsigned char)(senselD & 0xff);
+        out[tt+7] = (unsigned char)(senselD >> 8);
+
+        out[tt+8] = (unsigned char)(senselE & 0xff);
+        out[tt+9] = (unsigned char)(senselE >> 8);
+
+        out[tt+10] = (unsigned char)(senselF & 0xff);
+        out[tt+11] = (unsigned char)(senselF >> 8);
+
+        out[tt+12] = (unsigned char)(senselG & 0xff);
+        out[tt+13] = (unsigned char)(senselG >> 8);
+
+        out[tt+14] = (unsigned char)(senselH & 0xff);
+        out[tt+15] = (unsigned char)(senselH >> 8);
+    }
+
+}
+
+MDB &to16H(const metadata &metaData, const MDB &in) {
+
+    cudaDeviceProp cudaProps;
+    cudaGetDeviceProperties(&cudaProps, 0);
+    const int constant_mem = cudaProps.totalConstMem;
+    const int shrared_mem = cudaProps.sharedMemPerBlock;
+    const int threads_max = cudaProps.maxThreadsPerBlock;
+    const int blocks_max[3] = { cudaProps.maxGridSize[0], cudaProps.maxGridSize[1],  cudaProps.maxGridSize[2]}; 
+    const int mp_max = cudaProps.multiProcessorCount;
+    const int avail_mem = cudaProps.totalGlobalMem;
+
+    const int resx = metaData.xResolution;
+    const int resy = metaData.yResolution;
+    const int bl = metaData.blackLevelOld;
+    const bool maximize = metaData.maximize;
+    const double maximizer = metaData.maximizer;
+    unsigned int pixels = resx * resy;
+    unsigned int chunks = pixels * 14 / 8;
     const unsigned char* source = in();
 
+    destinationData[0].reset(std::size_t(pixels * 16 / 8));
+    MDB &dst = destinationData[0];
+
+    cudaDeviceSynchronize();
+
+    //CUDA steam
+    cudaStream_t  stream;
+    cudaStreamCreate(&stream);
+    //CUDA timers
+    cudaEvent_t start, stop;
+    cudaEventCreate(&start);
+    cudaEventCreate(&stop);
+    cudaEventRecord(start, 0);
+
+    //CUDA memory copy
+    unsigned char *input_data_dev;
+    unsigned char *output_data_dev;
+
+    checkCudaErrors(cudaMalloc((void **)&input_data_dev, in.bytes()));
+    checkCudaErrors(cudaMalloc((void **)&output_data_dev, dst.bytes()));
+    cudaMemset(output_data_dev, 0, dst.bytes());
+    checkCudaErrors(cudaMemcpyAsync(input_data_dev, in(), in.bytes(), cudaMemcpyHostToDevice, stream));
+
+    //CUDA plan
+    int pixels_per_thread = 8;
+    int data_to_process = pixels / pixels_per_thread;
+
+    //CUDA dim set
+    int block_count = data_to_process / threads_max;
+    int block_count_rest = data_to_process % threads_max;
+    if(block_count_rest)
+        block_count++;
+
+    LOG() << "Plan:" <<  " chk:" << chunks << " tile:" << threads_max << 
+            " block:" << block_count << "/" << block_count_rest << std::endl;
+
+    dim3 task_blocks(block_count,1);
+    dim3 task_threads(threads_max, 1);
+
+    //CUDA kernel
+    if(maximize) {
+        proc_kernel_conv_14_max <<< task_blocks, task_threads, 0, stream>>>(chunks, bl, maximizer, input_data_dev, output_data_dev);
+    }
+    else {
+        proc_kernel_conv_14 <<< task_blocks, task_threads, 0, stream>>>(chunks, input_data_dev, output_data_dev);
+    }
+
+    //CUDA finish
+    checkCudaErrors(cudaMemcpyAsync(dst(),  output_data_dev, dst.bytes(), cudaMemcpyDeviceToHost, stream));
+
+    cudaStreamSynchronize(stream);
+    cudaStreamDestroy(stream);
+
+    cudaEventRecord(stop, 0);
+
+    int counter = 0;
+    while (cudaEventQuery(stop) == cudaErrorNotReady) {
+      counter++;
+    }
+
+    float gpu_time = 0;
+    cudaEventElapsedTime(&gpu_time, start, stop);
+    LOG() << "Finished.\nTime spent executing by the GPU: " <<  gpu_time << "ms,  Counts: " << counter << std::endl;
+
+
+/*    for(int i=0; i<40; ++i)
+        LOG() << std::hex << (int)dst[i] << " ";
+    LOG() << std::endl;
+*/
+    cudaFree(input_data_dev);
+    cudaFree(output_data_dev);
+
+
+    return destinationData[0];
+}
+
+MDB &to16(const metadata &metaData, const MDB &in)
+{
+    const int resx = metaData.xResolution;
+    const int resy = metaData.yResolution;
+    const int bl = metaData.blackLevelOld;
+    bool maximize = metaData.maximize;
+    const double maximizer = metaData.maximizer;
     unsigned int chunks = resx * resy * 14 / 8;
-    std::unique_ptr<MDB> destination(new MDB(std::size_t(chunks / 14 * 16)));
-    MDB &Dest = *destination.get();
+    const unsigned char* source = in();
+
+    maximize = false;
+
+    destinationData[0].reset(std::size_t(chunks / 14 * 16));
+    MDB &Dest = destinationData[0];
 
 
     unsigned int tt = 0;
     int senselA, senselB, senselC, senselD, senselE, senselF, senselG, senselH;
     for (unsigned int t = 0; t < chunks; t += 14)
     {
+
+        unsigned int in_0 = (unsigned int)source[t];
+        unsigned int in_1 = (unsigned int)source[t+1];
+        unsigned int in_2 = (unsigned int)source[t+2];
+        unsigned int in_3 = (unsigned int)source[t+3];
+        unsigned int in_4 = (unsigned int)source[t+4];
+        unsigned int in_5 = (unsigned int)source[t+5];
+        unsigned int in_6 = (unsigned int)source[t+6];
+        unsigned int in_7 = (unsigned int)source[t+7];
+        unsigned int in_8 = (unsigned int)source[t+8];
+        unsigned int in_9 = (unsigned int)source[t+9];
+        unsigned int in_10 = (unsigned int)source[t+10];
+        unsigned int in_11 = (unsigned int)source[t+11];
+        unsigned int in_12 = (unsigned int)source[t+12];
+        unsigned int in_13 = (unsigned int)source[t+13];
+        unsigned int in_14 = (unsigned int)source[t+14];
+        unsigned int in_15 = (unsigned int)source[t+15];
+
+
         if (maximize == true)
         {
-            senselA = (int)((source[t] >> 2) | (source[t + 1] << 6));
-            senselB = (int)(((source[t] & 0x3) << 12) | (source[t + 3] << 4) | (source[t + 2] >> 4));
-            senselC = (int)(((source[t + 2] & 0x0f) << 10) | (source[t + 5] << 2) | (source[t + 4] >> 6));
-            senselD = (int)(((source[t + 4] & 0x3f) << 8) | (source[t + 7]));
-            senselE = (int)((source[t + 9] >> 2) | (source[t + 6] << 6));
-            senselF = (int)(((source[t + 9] & 0x3) << 12) | (source[t + 8] << 4) | (source[t + 11] >> 4));
-            senselG = (int)(((source[t + 11] & 0x0f) << 10) | (source[t + 10] << 2) | (source[t + 13] >> 6));
-            senselH = (int)(((source[t + 13] & 0x3f) << 8) | (source[t + 12]));
+            senselA = ( (in_0 >> 2) | ( in_1 << 6));
+            senselB = ( (in_0 & 0x3) << 12) | (in_3 << 4) | (in_2 >> 4);
+            senselC = ((in_2 & 0x0f) << 10) | (in_5 << 2) | (in_4 >> 6);
+            senselD = ((in_4 & 0x3f) << 8) | (in_7);
+            senselE = (in_9 >> 2) | (in_6 << 6);
+            senselF = ((in_9 & 0x3) << 12) | (in_8 << 4) | (in_11 >> 4);
+            senselG = ((in_11 & 0x0f) << 10) | (in_10 << 2) | (in_13 >> 6);
+            senselH = ((in_13 & 0x3f) << 8) | in_12;
 
             // debias sensel
-            senselA = senselA - (int)bl;
-            senselB = senselB - (int)bl;
-            senselC = senselC - (int)bl;
-            senselD = senselD - (int)bl;
-            senselE = senselE - (int)bl;
-            senselF = senselF - (int)bl;
-            senselG = senselG - (int)bl;
-            senselH = senselH - (int)bl;
+            senselA -= bl;
+            senselB -= bl;
+            senselC -= bl;
+            senselD -= bl;
+            senselE -= bl;
+            senselF -= bl;
+            senselG -= bl;
+            senselH -= bl;
 
             // maximize to 16bit
             senselA = (int)(senselA * maximizer);
@@ -75,16 +366,14 @@ std::unique_ptr<MDB> to16(const metadata &metaData,const MDB &in)
         }
         else
         {
-            // no maximizing
-            senselA = (int)((source[t] >> 2) | (source[t + 1] << 6));
-            senselB = (int)(((source[t] & 0x3) << 12) | (source[t + 3] << 4) | (source[t + 2] >> 4));
-            senselC = (int)(((source[t + 2] & 0x0f) << 10) | (source[t + 5] << 2) | (source[t + 4] >> 6));
-            senselD = (int)(((source[t + 4] & 0x3f) << 8) | (source[t + 7]));
-            senselE = (int)((source[t + 9] >> 2) | (source[t + 6] << 6));
-            senselF = (int)(((source[t + 9] & 0x3) << 12) | (source[t + 8] << 4) | (source[t + 11] >> 4));
-            senselG = (int)(((source[t + 11] & 0x0f) << 10) | (source[t + 10] << 2) | (source[t + 13] >> 6));
-            senselH = (int)(((source[t + 13] & 0x3f) << 8) | (source[t + 12]));
-
+            senselA = ( (in_0 >> 2) | ( in_1 << 6));
+            senselB = ( (in_0 & 0x3) << 12) | (in_3 << 4) | (in_2 >> 4);
+            senselC = ((in_2 & 0x0f) << 10) | (in_5 << 2) | (in_4 >> 6);
+            senselD = ((in_4 & 0x3f) << 8) | (in_7);
+            senselE = (in_9 >> 2) | (in_6 << 6);
+            senselF = ((in_9 & 0x3) << 12) | (in_8 << 4) | (in_11 >> 4);
+            senselG = ((in_11 & 0x0f) << 10) | (in_10 << 2) | (in_13 >> 6);
+            senselH = ((in_13 & 0x3f) << 8) | in_12;
         }
 
         Dest[tt++] = (unsigned char)(senselA & 0xff);
@@ -113,7 +402,12 @@ std::unique_ptr<MDB> to16(const metadata &metaData,const MDB &in)
 
     }
 
-    return destination;
+    for(int i=0; i<40; ++i)
+        LOG() << std::hex << (int)Dest[i] << " ";
+    LOG() << std::endl;
+
+
+    return destinationData[0];
 }
 
 // 5DIII valuerange
@@ -121,7 +415,7 @@ std::unique_ptr<MDB> to16(const metadata &metaData,const MDB &in)
 // 16bit - 8192-60.000 - maximized 0-65535
 // 12bit - 512-3750 = ~3.200 - maximized 0-4095 (
 
-std::unique_ptr<MDB> from16to12(const metadata &metaData, const MDB &in)
+MDB &from16to12(const metadata &metaData, const MDB &in)
 {
     // preparing variables
     int resx = metaData.xResolution;
@@ -130,8 +424,8 @@ std::unique_ptr<MDB> from16to12(const metadata &metaData, const MDB &in)
     // ------------- and go ----
 
     unsigned int chunks = resx * resy * 16 / 8;
-    std::unique_ptr<MDB> destination (new MDB(std::size_t(chunks / 16 * 12 + 72)));
-    MDB &Dest = *destination.get();
+    destinationData[0].reset(std::size_t(chunks / 16 * 12 + 72));
+    MDB &Dest = destinationData[0];
 
     unsigned int tt = 0;
     int senselA, senselB, senselC, senselD, senselE, senselF, senselG, senselH;
@@ -217,10 +511,10 @@ std::unique_ptr<MDB> from16to12(const metadata &metaData, const MDB &in)
         Dest[tt++] = (unsigned char)(senselX & 0xff);
         //36
     }
-    return destination;
+    return destinationData[0];
 }
 
-std::unique_ptr<MDB> to12(const metadata &metaData, const MDB &in)
+MDB &to12(const metadata &metaData, const MDB &in)
 {
     // preparing variables
     int resx = metaData.xResolution;
@@ -232,8 +526,8 @@ std::unique_ptr<MDB> to12(const metadata &metaData, const MDB &in)
     // ------------- and go ----
 
     unsigned int chunks = resx * resy * 14 / 8;
-    std::unique_ptr<MDB> destination(new MDB(std::size_t(chunks / 14 * 12 + 42)));
-    MDB &Dest = *destination.get();
+    destinationData[0].reset(std::size_t(chunks / 14 * 12 + 42));
+    MDB &Dest = destinationData[0];
 
 
     unsigned int tt = 0;
@@ -455,6 +749,6 @@ std::unique_ptr<MDB> to12(const metadata &metaData, const MDB &in)
         Dest[tt++] = (unsigned char)(senselX & 0xff);
 
     }
-    return destination;
+    return destinationData[0];
 }
 

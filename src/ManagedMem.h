@@ -56,21 +56,31 @@ struct ManagedPtr {
     ManagedPtr(): msize(0), mptr(NULL) {
     }
     ManagedPtr(std::size_t n_elements): msize(n_elements * sizeof(T)) {
-        cudaMallocHost((void **)&mptr, msize);
+        if(n_elements)
+            cudaMallocHost((void **)&mptr, msize);
     }
     ~ManagedPtr() {
         if(mptr)
             cudaFreeHost(mptr);
     }
     void reset(std::size_t n_elements) {
+        if(n_elements * sizeof(T) == msize)
+            return; //We dont neen to change anything;
         if(mptr) {
             cudaFreeHost(mptr);
             mptr = NULL;
         }
-        msize = n_elements * sizeof(T);
-        cudaMallocHost((void **)&mptr, msize);
+        if(n_elements) {
+            msize = n_elements * sizeof(T);
+            cudaMallocHost((void **)&mptr, msize);
+        }
     }
-
+    inline
+    void clear() const {
+        if(mptr && msize) {
+            cudaMemset(mptr, 0x0, msize);
+        }
+    }
     inline
     T *operator()() {
         return (T*)mptr;

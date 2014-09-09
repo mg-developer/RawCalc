@@ -23,6 +23,8 @@ SET(CUDA_SOURCES
     BitConverters.cu
 )
 
+
+
 SET(CUDA_VERBOSE_BUILD ON CACHE BOOL "nvcc verbose" FORCE)
 # Set CUDA_ATTACH_VS_BUILD_RULE_TO_CUDA_FILE when you want to add the same .cu
 # file to multiple targets.
@@ -35,10 +37,12 @@ SOURCE_GROUP("include" FILES
 )
 
 ADD_DEFINITIONS(-DBUILD_LIBRARY)
+#CUDA_COMPILE_PTX(PTX_FILES ${CUDA_SOURCES})
 CUDA_ADD_LIBRARY(${PRJ_NAME} SHARED
     ${CUDA_SOURCES}
     ${SOURCES}
     ${HEADERS}
+    ${PTX_FILES}
 )
 INCLUDE(GenerateExportHeader)
 GENERATE_EXPORT_HEADER( ${PRJ_NAME}

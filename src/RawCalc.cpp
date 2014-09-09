@@ -15,9 +15,10 @@
 int calcOnGPU(const ProcessParams &p);
 int findBestGPU();
 
-std::unique_ptr<MDB> to16(const metadata &, const MDB &);
-std::unique_ptr<MDB> to12(const metadata &, const MDB &);
-std::unique_ptr<MDB> from12to16(const metadata &, const MDB &);
+MDB &to16(const metadata &, const MDB &);
+MDB &to16H(const metadata &, const MDB &);
+MDB &to12(const metadata &, const MDB &);
+MDB &from12to16(const metadata &, const MDB &);
 
 
 //Global Data
@@ -26,7 +27,7 @@ static std::string inputFile;
 static metadata metaData;
 
 static int ReadData(const char *file, const mlvBlock &block);
-static int WriteData(const char *file, MDB &processed, unsigned char *dng, int sizedng);
+static int WriteData(const char *file, const MDB &processed, const unsigned char *dng, int sizedng);
 
 template<typename T>
 int write_raw(const char *name, const T& in, std::size_t size = sizeof(T)) {
@@ -49,7 +50,8 @@ RawCalc_EXPORT int ModuleSetup(metadata data) {
 
     //Reset settings
 
-/*    findBestGPU();
+    findBestGPU();
+/*
     ProcessParams p;
     p.data.reset(100);
 
@@ -82,10 +84,8 @@ RawCalc_EXPORT int ProcessDataAndSave(char *output, mlvBlock block, unsigned cha
 
     ReadData(inputFile.c_str(), block);
 
-    std::unique_ptr<MDB> processed = to16(metaData, inputData);
-
-    unsigned char* d = (*processed.get())();
-
+    MDB &processed = to16H(metaData, inputData);
+//   MDB &processed = to16(metaData, inputData);
 
     //TODO:
     //vertical Banding
@@ -93,7 +93,7 @@ RawCalc_EXPORT int ProcessDataAndSave(char *output, mlvBlock block, unsigned cha
     //pinkHighlight
     //downsample to 12
 
-    WriteData(output, *processed.get(), dngheader, sizedng);
+    WriteData(output, processed, dngheader, sizedng);
 
     return 0;
 }
@@ -113,7 +113,7 @@ static int ReadData(const char *file, const mlvBlock &block) {
     return 0;
 }
 
-static int WriteData(const char *file, MDB &processed, unsigned char *dng, int sizedng) {
+static int WriteData(const char *file,const MDB &processed,const unsigned char *dng, int sizedng) {
     std::ofstream f(file, std::ofstream::binary);
     if(f.is_open()) {
         f.write((const char*)dng, sizedng);
