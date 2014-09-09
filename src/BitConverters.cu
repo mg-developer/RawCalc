@@ -7,7 +7,7 @@
 
 static MDB destinationData[6];
 
-__global__ void proc_kernel_conv_14_max(int last_chunk, int bl, float maximize, unsigned char *in, unsigned char *out) {
+__global__ void proc_kernel_conv_14_16_max(int last_chunk, int bl, float maximize, unsigned char *in, unsigned char *out) {
 
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     int t = idx * 14;
@@ -114,7 +114,7 @@ __global__ void proc_kernel_conv_14_max(int last_chunk, int bl, float maximize, 
 }
 
 
-__global__ void proc_kernel_conv_14(int last_chunk, unsigned char *in, unsigned char *out) {
+__global__ void proc_kernel_conv_14_16(int last_chunk, unsigned char *in, unsigned char *out) {
 
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     int t = idx * 14;
@@ -203,8 +203,8 @@ MDB &to16H(const metadata &metaData, const MDB &in) {
     cudaDeviceSynchronize();
 
     //CUDA steam
-    cudaStream_t  stream;
-    cudaStreamCreate(&stream);
+//    cudaStream_t  stream;
+//    cudaStreamCreate(&stream);
     //CUDA timers
     cudaEvent_t start, stop;
     cudaEventCreate(&start);
@@ -217,8 +217,8 @@ MDB &to16H(const metadata &metaData, const MDB &in) {
 
     checkCudaErrors(cudaMalloc((void **)&input_data_dev, in.bytes()));
     checkCudaErrors(cudaMalloc((void **)&output_data_dev, dst.bytes()));
-    cudaMemset(output_data_dev, 0, dst.bytes());
-    checkCudaErrors(cudaMemcpyAsync(input_data_dev, in(), in.bytes(), cudaMemcpyHostToDevice, stream));
+//    checkCudaErrors(cudaMemset(output_data_dev, 0, dst.bytes()));
+    checkCudaErrors(cudaMemcpyAsync(input_data_dev, in(), in.bytes(), cudaMemcpyHostToDevice/*, stream*/));
 
     //CUDA plan
     int pixels_per_thread = 8;
@@ -238,17 +238,17 @@ MDB &to16H(const metadata &metaData, const MDB &in) {
 
     //CUDA kernel
     if(maximize) {
-        proc_kernel_conv_14_max <<< task_blocks, task_threads, 0, stream>>>(chunks, bl, maximizer, input_data_dev, output_data_dev);
+        proc_kernel_conv_14_16_max <<< task_blocks, task_threads /*, 0, stream*/>>>(chunks, bl, maximizer, input_data_dev, output_data_dev);
     }
     else {
-        proc_kernel_conv_14 <<< task_blocks, task_threads, 0, stream>>>(chunks, input_data_dev, output_data_dev);
+        proc_kernel_conv_14_16 <<< task_blocks, task_threads, 0 /*, stream*/>>>(chunks, input_data_dev, output_data_dev);
     }
 
     //CUDA finish
-    checkCudaErrors(cudaMemcpyAsync(dst(),  output_data_dev, dst.bytes(), cudaMemcpyDeviceToHost, stream));
+    checkCudaErrors(cudaMemcpyAsync(dst(),  output_data_dev, dst.bytes(), cudaMemcpyDeviceToHost/*, stream*/));
 
-    cudaStreamSynchronize(stream);
-    cudaStreamDestroy(stream);
+//    cudaStreamSynchronize(stream);
+//    cudaStreamDestroy(stream);
 
     cudaEventRecord(stop, 0);
 
@@ -401,11 +401,6 @@ MDB &to16(const metadata &metaData, const MDB &in)
         Dest[tt++] = (unsigned char)(senselH >> 8);
 
     }
-
-    for(int i=0; i<40; ++i)
-        LOG() << std::hex << (int)Dest[i] << " ";
-    LOG() << std::endl;
-
 
     return destinationData[0];
 }

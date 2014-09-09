@@ -41,36 +41,20 @@ int write_raw(const char *name, const T& in, std::size_t size = sizeof(T)) {
 extern "C" {
 
 RawCalc_EXPORT int ModuleSetup(metadata data) {
-//    write_raw("metadata.out", data);
     LOG() << "ModuleSetup" << std::endl;
 
     memcpy((void*)&metaData, (void*)&data, sizeof(metadata));
     inputData.reset(metaData.stripByteCountReal);
 
-
     //Reset settings
-
     findBestGPU();
-/*
-    ProcessParams p;
-    p.data.reset(100);
-
-    for(int n=0; n<100; ++n)
-        p.data[n] = n;
-
-    calcOnGPU(p);
-*/
-
 
     LOG() << "Res:" << data.xResolution << "x" << data.yResolution << std::endl;
-//  LOG() << "Metadata size:" << sizeof(metadata) << std::endl;
-
- // LOG() << "Finished" << std::endl;
     return 0;
 }
 
 RawCalc_EXPORT int AssignFileToProcess(char *input) {
-    LOG() << "Input file:" << input << std::endl;
+//    LOG() << "Input file:" << input << std::endl;
     inputFile = std::move(std::string(input));
     return 0;
 }
@@ -78,9 +62,6 @@ RawCalc_EXPORT int AssignFileToProcess(char *input) {
 
 RawCalc_EXPORT int ProcessDataAndSave(char *output, mlvBlock block, unsigned char *dngheader, int sizedng) {
     LOG() << "Output file:" << output << "  Frame:" << block.MLVFrameNo << std::endl;
-
-//    write_raw("mlvblock.out", block);
-//    write_raw("dng.out", *dngheader, sizedng);
 
     ReadData(inputFile.c_str(), block);
 
