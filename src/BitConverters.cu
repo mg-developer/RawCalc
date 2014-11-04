@@ -202,9 +202,6 @@ MDB &to16H(const metadata &metaData, const MDB &in) {
 
     cudaDeviceSynchronize();
 
-    //CUDA steam
-//    cudaStream_t  stream;
-//    cudaStreamCreate(&stream);
     //CUDA timers
     cudaEvent_t start, stop;
     cudaEventCreate(&start);
@@ -246,9 +243,6 @@ MDB &to16H(const metadata &metaData, const MDB &in) {
 
     //CUDA finish
     checkCudaErrors(cudaMemcpyAsync(dst(),  output_data_dev, dst.bytes(), cudaMemcpyDeviceToHost/*, stream*/));
-
-//    cudaStreamSynchronize(stream);
-//    cudaStreamDestroy(stream);
 
     cudaEventRecord(stop, 0);
 

@@ -88,22 +88,9 @@ int calcOnGPU(const ProcessParams &p) {
     sdkStartTimer(&timer);
     cudaEventRecord(start, 0);
 
-    //Common stage
-/*    int params[] = { p.recordCount, p.ballSet,
-                     p.combinationCount, p.ballPerComb,
-                     p.lengthCount, 0,
-                     p.combinationIndexCount, p.combinationIndexCount/p.ballSet
-                   };
-
-    memcpy(PARAMS_soft, params, sizeof(int)*8);
-    cudaMemcpyToSymbolAsync(PARAMS_dev, params, sizeof(int)*8);
-*/
-
     //Stage I
 
     cudaMemcpyAsync(inc_data_dev, p.data(), p.data.bytes(), cudaMemcpyHostToDevice);
-  //  cudaMemcpyAsync(comb_data_dev, p.combinationData(), comb_mem, cudaMemcpyHostToDevice);
-  //  cudaMemsetAsync(length_data_dev, 0x0, length_mem);
     int n = p.data.size();
     dim3 task1_threads;
     dim3 task1_blocks;
